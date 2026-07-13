@@ -89,11 +89,14 @@ def numbered(text):
     return "\n".join(f"{i+1}. {l}" for i, l in enumerate(text))
 
 
-def call_claude(prompt, api_key):
+def call_claude(prompt, api_key, prefill=None, max_tokens=1000):
+    messages = [{"role": "user", "content": prompt}]
+    if prefill is not None:
+        messages.append({"role": "assistant", "content": prefill})
     body = json.dumps({
         "model": MODEL,
-        "max_tokens": 1000,
-        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "messages": messages,
     }).encode()
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
@@ -112,6 +115,8 @@ def call_claude(prompt, api_key):
         detail = e.read().decode(errors="replace")
         raise RuntimeError(f"HTTP {e.code}: {detail[:200]}")
     text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+    if prefill is not None:
+        text = prefill + text          # the API strips the prefill from the reply
     if not text.strip():
         raise RuntimeError("empty completion")
     return text
@@ -157,9 +162,12 @@ def one_run(n, seed, api_key):
     ops, text = make_stream(n, seed)
     truth = run_engine(ops)
 
-    # LEDGER — model does the accounting itself
+    # LEDGER — model does the accounting itself, in one shot.
+    # Prefill '{' forces it to answer as JSON immediately: no room to build a
+    # token-by-token scratchpad, so this actually tests the in-head/attention regime.
     try:
-        j = extract_json(call_claude(LEDGER_PROMPT + numbered(text), api_key))
+        raw = call_claude(LEDGER_PROMPT + numbered(text), api_key, prefill="{")
+        j = extract_json(raw)
         ledger = {"occ": j["finalOccupied"], "cap": j["finalCapacity"], "refused": j["admitsRefused"]}
         ledger_err = None
     except Exception as e:
