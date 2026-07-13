@@ -19,6 +19,29 @@ And this is precisely the ontology re-entering, which is why your instinct is ri
 
 The place it bites in real hospital data: the units are often fuzzy. Is a physically-present but unstaffed bed a bed? Is a float nurse one resource or fractional across units? Those are identity questions, and if you leave them ambiguous the conservation law itself becomes ill-posed — you can't conserve a quantity whose unit boundary you haven't fixed. The work of sharpening them into countable, individuated units is the ontology work, and it's the part you cannot delegate to the embedding. You can let the embedding carry acuity or case-mix similarity; you cannot let it decide what one bed is.
 
+## TWO PROMPTS
+
+### LEDGER_PROMPT
+This is where it asks the LLM to do it all.
+```    "You are the live bed-census tracker for a 12-bed ICU. The unit opened this shift with "
+    "effective capacity 10 and 0 patients. Read the raw event log in order and track the census. "
+    "An admission takes a bed only if one is free; at capacity the admission is REFUSED. "
+    "Discharges, deaths, and transfers-out free a bed. 'Maintenance' / 'out of service' removes "
+    "one bed from effective capacity (never below the current head count); 'returned to service' "
+    "restores one, up to 12. End your reply with ONLY this JSON object on the final line, nothing "
+    'after it: {"finalOccupied":int,"finalCapacity":int,"admitsRefused":int}.\n\nEVENT LOG:\n'
+```
+
+
+### ROUTER_PROMPT 
+This is used with some Python code to do the accounting.
+```    "Classify each ICU event-log line into ONE operation code. "
+    "A = a patient takes a bed (admission/transfer-in). D = a patient leaves a bed "
+    "(discharge/transfer-out). X = a death (frees a bed). B = a bed removed from service "
+    "(maintenance). U = a bed returned to service. Return ONLY a JSON array of code strings, "
+    "one per input line, in order. No other text.\n\nEVENT LOG:\n"
+```
+
 
 ## RUN 1 odd output at n=80
 === stream: 80 events, seed 10 ==============================
