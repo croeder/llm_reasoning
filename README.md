@@ -1,5 +1,7 @@
 # llm_reasoning
 
+This is a Claude project to compare LLM accounting to that of a proper tool. The context is a stream of events in a hosptial ICU and the task is to keep track of limited resources over that event stream. Claude wrote some python code to implement this in three ways: pure python, llm and assisted llm.  The llm drifts a bit.
+
 ## "Without having read the Python myself yet, does that mean that the resources being counted need clear unambiguous identifiers?"
 
 
